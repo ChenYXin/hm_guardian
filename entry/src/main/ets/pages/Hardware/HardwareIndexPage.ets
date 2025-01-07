@@ -11,6 +11,50 @@ import { process } from '@kit.ArkTS';
 //注册 dayjs 插件（相对时间 - 运行时间）
 // dayjs.extend(duration)
 import { formatToDateTime, formatToDate } from '../../common/utils/date'
+import { connection } from '@kit.NetworkKit';
+
+/**
+ * 计算子网掩码
+ * @param prefixLength 前缀长度
+ * @returns 子网掩码字符串
+ */
+function calculateSubnetMask(prefixLength: number): string {
+  // 计算每个字节的子网掩码部分
+  let subnetMask = '';
+  for (let i = 0; i < 4; i++) {
+    // 每个字节中的有效位数
+    const bits = Math.min(prefixLength, 8);
+    // 计算子网掩码字节的值并添加到结果字符串
+    subnetMask += (256 - Math.pow(2, 8 - bits)) + '.';
+    // 更新剩余的位数
+    prefixLength -= bits;
+  }
+  // 去除末尾的点并返回子网掩码字符串
+  return subnetMask.slice(0, -1);
+}
+
+/**
+ * 计算广播地址
+ * @param ipAddress IP地址字符串，例如 "192.168.2.13"
+ * @param subnetMask 子网掩码字符串，例如 "255.255.255.0"
+ * @returns 广播地址字符串
+ */
+function calculateBroadcastAddress(ipAddress: string, subnetMask: string): string {
+  // 将IP地址字符串转换为数字数组
+  const ipParts: number[] = ipAddress.split('.')
+    .map(Number);
+  // 将子网掩码字符串转换为数字数组
+  const subnetParts: number[] = subnetMask.split('.')
+    .map(Number);
+  // 计算每个字节的广播地址部分
+  const broadcastParts: number[] = [];
+  for (let i = 0; i < 4; i++) {
+    // 计算每个字节的广播地址值并添加到结果数组
+    broadcastParts.push(ipParts[i] | (255 - subnetParts[i]));
+  }
+  // 将结果数组转换为字符串并使用点分隔
+  return broadcastParts.join('.');
+}
 
 
 @Entry
@@ -55,6 +99,7 @@ struct HardwareIndexPage {
   aboutToAppear(): void {
     this.getDeviceInfo()
     this.getProcessInfo()
+    this.getConnectInfo()
   }
 
   getDeviceInfo() {
@@ -72,6 +117,57 @@ struct HardwareIndexPage {
   getProcessInfo() {
     //获取当前系统已运行的秒数
     this.uptime = process.uptime()
+  }
+
+  //获取网络信息
+  getConnectInfo() {
+    //获取检查默认数据网络是否激活
+    const isHasDefaultNet = connection.hasDefaultNetSync()
+    if (isHasDefaultNet === true) {
+      // this.netBearType = '有网络'
+      //有网络的情况下，判断是什么网络
+      this.getNetBearType()
+      //获取IP地址
+      this.getProperties()
+    } else {
+      this.netBearType = '无网络'
+    }
+  }
+
+  //获取网络类型（以太网、WIFI、蜂窝）
+  getNetBearType() {
+    //获取默认激活的数据网络
+    const netHandle = connection.getDefaultNetSync()
+    //获取网络的连接信息
+    const netCapabilities = connection.getNetCapabilitiesSync(netHandle)
+    if (netCapabilities.bearerTypes.includes(connection.NetBearType.BEARER_ETHERNET)) {
+      this.netBearType = '以太网网络' //网线
+    } else if (netCapabilities.bearerTypes.includes(connection.NetBearType.BEARER_WIFI)) {
+      this.netBearType = 'WIFI网络' //WIFI
+    } else if (netCapabilities.bearerTypes.includes(connection.NetBearType.BEARER_CELLULAR)) {
+      this.netBearType = '蜂窝网络' //流量蜂窝
+    } else {
+      this.netBearType = '未知网络'
+    }
+  }
+
+  //获取网络连接信息（ IP 地址）
+  getProperties() {
+    //获取默认激活的数据网络
+    const netHandle = connection.getDefaultNetSync()
+    //获取网络的连接信息
+    const connectionProperties = connection.getConnectionPropertiesSync(netHandle)
+    //提取链路信息
+    const linkAddress = connectionProperties.linkAddresses[0]
+    if (linkAddress) {
+      //提取IP地址
+      this.IPAddress = linkAddress.address.address
+      // 计算子网掩码（了解）
+      this.subnetMask = calculateSubnetMask(linkAddress.prefixLength)
+      // 计算广播地址（了解）
+      this.broadcastAddress = calculateBroadcastAddress(this.IPAddress, this.subnetMask)
+    }
+
   }
 
   @Builder
