@@ -1,6 +1,17 @@
 import { NavigationTitleBuilder } from '../../common/builders';
 import { SENSOR_NAME_LIST, SensorName } from '../../common/constants';
 import { themeManager } from '../../manager';
+import { deviceInfo } from '@kit.BasicServicesKit';
+import { process } from '@kit.ArkTS';
+//导入 dayjs 核心包
+// import dayjs from 'dayjs'
+//导入 dayjs 插件（相对时间 - 运行时间）
+// import duration from 'dayjs/plugin/duration'
+
+//注册 dayjs 插件（相对时间 - 运行时间）
+// dayjs.extend(duration)
+import { formatToDateTime, formatToDate } from '../../common/utils/date'
+
 
 @Entry
 @Component
@@ -39,6 +50,28 @@ struct HardwareIndexPage {
 
   onPageHide() {
     themeManager.settingStatusBarBlack()
+  }
+
+  aboutToAppear(): void {
+    this.getDeviceInfo()
+    this.getProcessInfo()
+  }
+
+  getDeviceInfo() {
+    //产品名称，可用于区分 模拟器（emulator）、真机（产品型号）
+    this.marketName = deviceInfo.marketName
+    //系统版本
+    this.osFullName = deviceInfo.osFullName
+    //系统软件api版本（API 9，11，12，13等）
+    this.sdkApiVersion = deviceInfo.sdkApiVersion.toString()
+    //设备类型，可用于区分 手机、平板、PC、车机、手表、电视 等
+    this.deviceType = deviceInfo.deviceType
+  }
+
+  //获取进程相关的信息
+  getProcessInfo() {
+    //获取当前系统已运行的秒数
+    this.uptime = process.uptime()
   }
 
   @Builder
@@ -90,8 +123,11 @@ struct HardwareIndexPage {
       Column() {
         List() {
           ListItemGroup({ header: this.ListTitle('基本信息') }) {
-            ListRow({ title: '上次启动', value: String(this.uptime) })
-            ListRow({ title: '运行时间', value: String(this.uptime) })
+            // ListRow({ title: '上次启动', value: dayjs().subtract(this.uptime, 'second').format('YYYY-MM-DD HH:mm:ss') })
+            // ListRow({ title: '运行时间', value: dayjs.duration(this.uptime, 'second').format('D天H小时mm分 ') })
+            ListRow({ title: '上次启动', value: formatToDateTime(this.uptime) })
+            ListRow({ title: '运行时间', value: formatToDate(this.uptime) })
+
           }
 
           ListItemGroup({ header: this.ListTitle('网络信息') }) {

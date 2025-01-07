@@ -19,7 +19,8 @@ export struct MyTabsComp {
   @StorageLink(LOGIN_INFO) loginInfo: LoginInfoResponse = {}
   @StorageLink('topHeight') topHeight: number = 0
   // @Provide 装饰器和 @Consume 装饰器：与后代组件双向同步
-  @Consume currentIndex: number
+  @Consume @Watch('onTabsChange') currentIndex: number
+  @Consume @Watch('onTabsChange') isPageShow: boolean
   //设备名称
   @State deviceName: string = ''
   //电量百分比
@@ -35,6 +36,15 @@ export struct MyTabsComp {
     this.getDebugInfo()
     this.getStatfsInfo()
     this.getBatteryInfo()
+  }
+
+  //当Tabs发生变化时
+  onTabsChange() {
+    if (this.currentIndex === 2 && this.isPageShow === true) {
+      this.getDebugInfo()
+      this.getStatfsInfo()
+      this.getBatteryInfo()
+    }
   }
 
   //获取设备产品名称
