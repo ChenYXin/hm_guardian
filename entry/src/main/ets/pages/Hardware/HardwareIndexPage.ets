@@ -12,6 +12,8 @@ import { process } from '@kit.ArkTS';
 // dayjs.extend(duration)
 import { formatToDateTime, formatToDate } from '../../common/utils/date'
 import { connection } from '@kit.NetworkKit';
+import { display } from '@kit.ArkUI';
+import { sensor } from '@kit.SensorServiceKit';
 
 /**
  * 计算子网掩码
@@ -100,6 +102,8 @@ struct HardwareIndexPage {
     this.getDeviceInfo()
     this.getProcessInfo()
     this.getConnectInfo()
+    this.getDisplayInfo()
+    this.getSensorInfo()
   }
 
   getDeviceInfo() {
@@ -167,7 +171,30 @@ struct HardwareIndexPage {
       // 计算广播地址（了解）
       this.broadcastAddress = calculateBroadcastAddress(this.IPAddress, this.subnetMask)
     }
+  }
 
+  //获取屏幕属性
+  getDisplayInfo() {
+    const defaultDisplay = display.getDefaultDisplaySync()
+    //分辨率
+    this.displayWidth = defaultDisplay.width
+    this.displayHeight = defaultDisplay.height
+    //刷新率
+    this.displayRefreshRate = defaultDisplay.refreshRate
+    //像素密度
+    this.displayDensityDPI = defaultDisplay.densityDPI
+  }
+
+  //获取传感器信息
+  async getSensorInfo() {
+    //获取设备上的所有传感器信息
+    // const list = sensor.getSensorListSync()
+    const sensorList = await sensor.getSensorList()
+    //通过map提取出传感器的id集合
+    this.supportSensorIds = sensorList.map(item => item.sensorId)
+    AlertDialog.show({
+      message: this.supportSensorIds + ''
+    })
   }
 
   @Builder
