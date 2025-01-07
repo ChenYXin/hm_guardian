@@ -1,6 +1,10 @@
 import { router } from '@kit.ArkUI'
 import { LOGIN_INFO, LoginInfoResponse } from '../../common/constants'
 import deviceInfo from '@ohos.deviceInfo'
+import { hidebug } from '@kit.PerformanceAnalysisKit'
+import { statfs } from '@kit.CoreFileKit'
+import { common } from '@kit.AbilityKit';
+import { batteryInfo } from '@kit.BasicServicesKit'
 
 interface UsageItem {
   icon: Resource
@@ -16,21 +20,55 @@ export struct MyTabsComp {
   @StorageLink('topHeight') topHeight: number = 0
   // @Provide 装饰器和 @Consume 装饰器：与后代组件双向同步
   @Consume currentIndex: number
+  //设备名称
   @State deviceName: string = ''
+  //电量百分比
   @State batteryState: number = 0
+  //内存占用率
   @State memorySize: number = 0
+  //CPU占用率
   @State cpuUsage: number = 0
   @State statfsFreeSize: number = 0
 
   aboutToAppear(): void {
     this.getDeDeviceInfo()
+    this.getDebugInfo()
+    this.getStatfsInfo()
+    this.getBatteryInfo()
   }
 
+  //获取设备产品名称
   getDeDeviceInfo() {
     // AlertDialog.show({
     //   message: deviceInfo.marketName
     // })
     this.deviceName = deviceInfo.marketName
+  }
+
+  //以同步方法获取指定文件系统空闲字节数
+  getStatfsInfo() {
+    let context = getContext()
+    // 单位 byte
+    // 1000MB = 1GB
+    // 1000KB = 1MB
+    // 1000B = 1KB
+    this.statfsFreeSize = statfs.getFreeSizeSync(context.filesDir) / 1000 / 1000 / 1000
+
+  }
+
+  //获取调试信息，CPU占用率、内存
+  getDebugInfo() {
+    this.cpuUsage = hidebug.getCpuUsage() * 100
+    //获取应用进程实际使用的物理内存大小，单位为kb
+    //1MB =1024KB (Windows 系统)
+    //1MB =1000KB (Mac 系统,Linux 系统,手机 系统, U盘，DVD 光盘)
+    this.memorySize = Number(hidebug.getPss()) / 1000
+  }
+
+  //获取电量信息
+  getBatteryInfo() {
+    //当前设备剩余电池电量百分比
+    this.batteryState = batteryInfo.batterySOC
   }
 
   // 标题行
@@ -173,7 +211,8 @@ export struct MyTabsComp {
               this.UsageColumn({
                 icon: $r('app.media.ic_my_storage'),
                 name: '剩余存储',
-                value: this.statfsFreeSize.toFixed(0),
+                //0: 不保留小数位, 1:保留1位
+                value: this.statfsFreeSize.toFixed(1),
                 unit: 'GB'
               })
             }
