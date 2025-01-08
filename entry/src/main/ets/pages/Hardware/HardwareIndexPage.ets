@@ -192,9 +192,9 @@ struct HardwareIndexPage {
     const sensorList = await sensor.getSensorList()
     //通过map提取出传感器的id集合
     this.supportSensorIds = sensorList.map(item => item.sensorId)
-    AlertDialog.show({
-      message: this.supportSensorIds + ''
-    })
+    // AlertDialog.show({
+    //   message: this.supportSensorIds + ''
+    // })
   }
 
   @Builder

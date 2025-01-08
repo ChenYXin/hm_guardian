@@ -1,6 +1,8 @@
 import { Permissions } from '@kit.AbilityKit';
 import { NavigationTitleBuilder } from '../../common/builders';
-import { themeManager } from '../../manager';
+import { permissionManager, themeManager } from '../../manager';
+import { promptAction } from '@kit.ArkUI';
+import { it } from '@ohos/hypium';
 
 interface PermissionItem {
   name: string
@@ -70,10 +72,82 @@ struct SettingsPermissionPage {
 
   onPageShow() {
     themeManager.settingStatusBarWhite()
+    //页面显示，更新权限列表
+    this.updatePermissions()
   }
 
   onPageHide() {
     themeManager.settingStatusBarBlack()
+  }
+
+  //申请权限
+  async requestPermission(item: PermissionItem) {
+
+    try {
+      //申请权限
+      await permissionManager.requestPermissions(item.permissions)
+      // 允许 -> 变成文本
+
+    } catch (error) {
+      // 禁止 -> 申请二次弹窗 申请授权
+      promptAction.showDialog({
+        alignment: DialogAlignment.Center,
+        title: '温馨提示',
+        message: item.desc,
+        buttons: [
+          { text: '取消', color: $r('app.color.font_sub') },
+          { text: '去设置', color: $r('app.color.brand') }
+        ]
+      }).then(async (res) => {
+        if (res.index === 1) {
+          try {
+            //二次申请授权 - 成功
+            await permissionManager.requestPermissionOnSetting(item.permissions)
+            promptAction.showToast({ message: '权限申请通过' })
+
+          } catch (error) {
+            //二次申请授权 - 失败
+            promptAction.showToast({ message: '权限申请不通过，功能受限' })
+          } finally {
+            this.updatePermissions()
+          }
+        }
+      })
+    } finally {
+      this.updatePermissions()
+    }
+  }
+
+  //更新权限列表
+  updatePermissions() {
+    this.permissionList = this.permissionList.map<PermissionItem>(item => {
+      return {
+        name: item.name,
+        title: item.title,
+        desc: item.desc,
+        permissions: item.permissions,
+        timeStamp: Date.now()
+      }
+    })
+  }
+
+  //关闭权限，注意：鸿蒙没有关闭权限的API，需要用户自行到设置页关闭
+  closePermissions() {
+    promptAction.showDialog({
+      alignment: DialogAlignment.Center,
+      title: '温馨提示',
+      message: '关闭权限会影响应用的正常运行，您确认关闭吗?',
+      buttons: [
+        { text: '取消', color: $r('app.color.brand') },
+        { text: '狠心关闭', color: $r('app.color.font_sub') }
+      ]
+    }).then(res => {
+      //用户点击了 狠心关闭
+      if (res.index === 1) {
+        //通过代码打开当前应用的设置页
+        permissionManager.openPermissionSettingsPage()
+      }
+    })
   }
 
   build() {
@@ -101,29 +175,18 @@ struct SettingsPermissionPage {
             }
             .alignItems(HorizontalAlign.Start)
 
-            // TODO: 检测权限是否开启
-            if (item.name === 'notification') {
-              if (false) {
-                Text('已开启')
-                  .fontSize(14)
-                  .fontColor($r('app.color.brand'))
-              } else {
-                Toggle({ type: ToggleType.Switch, isOn: false })
-                  .onChange(async () => {
-                    // TODO：点击申请 notification 权限
-                  })
-              }
+            //检测权限是否开启
+            if (permissionManager.checkPermissions(item.permissions)) {
+              // if (false) {
+              Text('已开启')
+                .fontSize(14)
+                .fontColor($r('app.color.brand'))
             } else {
-              if (false) {
-                Text('已开启')
-                  .fontSize(14)
-                  .fontColor($r('app.color.brand'))
-              } else {
-                Toggle({ type: ToggleType.Switch, isOn: false })
-                  .onChange(async () => {
-                    // TODO：点击申请 user_grant 授权
-                  })
-              }
+              Toggle({ type: ToggleType.Switch, isOn: false })
+                .onChange(async () => {
+                  //点击申请 user_grant 授权
+                  this.requestPermission(item)
+                })
             }
           }
           .width('100%')
@@ -135,7 +198,9 @@ struct SettingsPermissionPage {
           .backgroundColor(Color.Transparent)
           .margin({ top: 20 })
           .onClick(() => {
-            // TODO: 关闭权限，弹窗提示，关闭权限需到设置页关闭
+            //关闭权限，弹窗提示，关闭权限需到设置页关闭
+            // permissionManager.openPermissionSettingsPage()
+            this.closePermissions()
           })
       }
       .width('100%')

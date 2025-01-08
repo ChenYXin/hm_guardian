@@ -1,6 +1,20 @@
 {
   "app": {
-    "signingConfigs": [],
+    "signingConfigs": [
+      {
+        "name": "default",
+        "type": "HarmonyOS",
+        "material": {
+          "certpath": "/Users/chenyuexin/.ohos/config/default_hm_guardian_Q6CUkkOBqAKz24LquubBVv5RVLS5IcbG-xZi11ATQok=.cer",
+          "storePassword": "0000001B2EA92F8784A15881A154A613BD7BCEE94264B51BAB98884B8F732DB17593F55A8A8D3468CEDA34",
+          "keyAlias": "debugKey",
+          "keyPassword": "0000001BD3A8A71511787669AE59D9EF478A664AB5F101EAC9DAE9D30DF8D79B46979CE9434CB77428EA4B",
+          "profile": "/Users/chenyuexin/.ohos/config/default_hm_guardian_Q6CUkkOBqAKz24LquubBVv5RVLS5IcbG-xZi11ATQok=.p7b",
+          "signAlg": "SHA256withECDSA",
+          "storeFile": "/Users/chenyuexin/.ohos/config/default_hm_guardian_Q6CUkkOBqAKz24LquubBVv5RVLS5IcbG-xZi11ATQok=.p12"
+        }
+      }
+    ],
     "products": [
       {
         "name": "default",
