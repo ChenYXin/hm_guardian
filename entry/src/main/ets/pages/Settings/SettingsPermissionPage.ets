@@ -3,6 +3,7 @@ import { NavigationTitleBuilder } from '../../common/builders';
 import { permissionManager, themeManager } from '../../manager';
 import { promptAction } from '@kit.ArkUI';
 import { it } from '@ohos/hypium';
+import { notificationManager } from '@kit.NotificationKit';
 
 interface PermissionItem {
   name: string
@@ -150,6 +151,43 @@ struct SettingsPermissionPage {
     })
   }
 
+  // 申请通知授权
+  async requestNotification() {
+    try {
+      // 经验：鸿蒙返回值为 Promise<void> 的 API ，一般是通过 try catch 捕获错误，鼠标悬停到 API 上可看到 错误编码 和 错误说明
+      await notificationManager.requestEnableNotification()
+    } catch (error) {
+      //   禁止 -> 引导用户打开设置页开启权限
+      // 如果禁止授权，先弹窗询问，用户点击按钮后打开设置页
+      promptAction.showDialog({
+        alignment: DialogAlignment.Center,
+        title: '温馨提示',
+        message: '建议开启通知权限，以提供更好的体验',
+        buttons: [
+          { text: '取消', color: $r('app.color.font_sub') },
+          { text: '去设置', color: $r('app.color.brand') },
+        ]
+      })
+        .then((res) => {
+          // 用户点击了去设置
+          if (res.index === 1) {
+            // 通过代码打开当前应用的设置页
+            permissionManager.openPermissionSettingsPage()
+          }
+        })
+    }
+    // 更新通知权限
+    this.updateNotification()
+    // 主动触发列表更新，更新所有的列表按钮状态
+    this.updatePermissions()
+  }
+
+  // 刷新通知权限
+  async updateNotification() {
+    // 查询通知是否授权
+    this.isNotificationEnabled = await notificationManager.isNotificationEnabled()
+  }
+
   build() {
     Navigation() {
       Row() {
@@ -175,18 +213,34 @@ struct SettingsPermissionPage {
             }
             .alignItems(HorizontalAlign.Start)
 
-            //检测权限是否开启
-            if (permissionManager.checkPermissions(item.permissions)) {
-              // if (false) {
-              Text('已开启')
-                .fontSize(14)
-                .fontColor($r('app.color.brand'))
+            // 通知
+            if (item.name === 'notification') {
+              // 是否已开启权限
+              if (this.isNotificationEnabled) {
+                Text('已开启')
+                  .fontSize(14)
+                  .fontColor($r('app.color.brand'))
+              } else {
+                Toggle({ type: ToggleType.Switch, isOn: false })
+                  .onChange(async () => {
+                    // 申请通知权限
+                    this.requestNotification()
+                  })
+              }
             } else {
-              Toggle({ type: ToggleType.Switch, isOn: false })
-                .onChange(async () => {
-                  //点击申请 user_grant 授权
-                  this.requestPermission(item)
-                })
+              //检测权限是否开启
+              if (permissionManager.checkPermissions(item.permissions)) {
+                // if (false) {
+                Text('已开启')
+                  .fontSize(14)
+                  .fontColor($r('app.color.brand'))
+              } else {
+                Toggle({ type: ToggleType.Switch, isOn: false })
+                  .onChange(async () => {
+                    //点击申请 user_grant 授权
+                    this.requestPermission(item)
+                  })
+              }
             }
           }
           .width('100%')
