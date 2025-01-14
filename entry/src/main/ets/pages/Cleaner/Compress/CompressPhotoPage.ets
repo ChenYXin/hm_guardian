@@ -2,6 +2,7 @@ import { photoAccessHelper } from '@kit.MediaLibraryKit'
 import { NavigationTitleBuilder } from '../../../common/builders'
 import { formatByteLength } from '../../../common/utils'
 import { themeManager, cleanerManager } from '../../../manager'
+import { promptAction } from '@kit.ArkUI'
 
 @Entry
 @Component
@@ -25,6 +26,20 @@ struct CompressPhotoIndexPage {
   // 立即瘦身（压缩照片）
   async getList() {
     this.list = await cleanerManager.getLargeSizeList()
+  }
+
+  //立即瘦身
+  async startCompress() {
+    // const imageUri = this.list[0].uri
+    // cleanerManager.compressImage(imageUri)
+    const promiseList = this.selectedUris.map(async (item) => {
+      return await cleanerManager.compressImage(item)
+    })
+    await Promise.all(promiseList)
+    promptAction.showToast({ message: `${this.selectedUris.length} 图片压缩成功` })
+    //删除图片
+    await cleanerManager.deletePhotos(this.selectedUris)
+    this.getList()
   }
 
   build() {
@@ -79,7 +94,7 @@ struct CompressPhotoIndexPage {
                           .borderRadius(6)
                           .clip(true)
                         }
-                      })
+                      }, (item: photoAccessHelper.PhotoAsset) => item.uri)
                     }
                   }
 
@@ -121,7 +136,8 @@ struct CompressPhotoIndexPage {
             .layoutWeight(1)
             .enabled(this.selectedUris.length > 0)
             .onClick(() => {
-              // TODO：立即瘦身（压缩照片）
+              // 立即瘦身（压缩照片）
+              this.startCompress()
             })
         }
         .width('100%')
