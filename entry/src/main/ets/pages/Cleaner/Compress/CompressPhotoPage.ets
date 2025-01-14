@@ -1,7 +1,7 @@
 import { photoAccessHelper } from '@kit.MediaLibraryKit'
 import { NavigationTitleBuilder } from '../../../common/builders'
 import { formatByteLength } from '../../../common/utils'
-import { themeManager } from '../../../manager'
+import { themeManager, cleanerManager } from '../../../manager'
 
 @Entry
 @Component
@@ -9,6 +9,10 @@ struct CompressPhotoIndexPage {
   @State list: photoAccessHelper.PhotoAsset[] = []
   @State selectedUris: string[] = []
   @State selectedSize: number = 0
+
+  aboutToAppear(): void {
+    this.getList()
+  }
 
   onPageShow() {
     themeManager.settingStatusBarWhite()
@@ -18,7 +22,11 @@ struct CompressPhotoIndexPage {
     themeManager.settingStatusBarBlack()
   }
 
-  // TODO：立即瘦身（压缩照片）
+  // 立即瘦身（压缩照片）
+  async getList() {
+    this.list = await cleanerManager.getLargeSizeList()
+  }
+
   build() {
     Navigation() {
       Stack({ alignContent: Alignment.Bottom }) {

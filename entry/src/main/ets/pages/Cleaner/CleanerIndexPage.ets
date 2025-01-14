@@ -3,7 +3,7 @@ import { statfs } from '@kit.CoreFileKit'
 import { photoAccessHelper } from '@kit.MediaLibraryKit'
 import { NavigationTitleBuilder } from '../../common/builders'
 import { formatByteLength, GIGA_BYTE } from '../../common/utils'
-import { themeManager } from '../../manager'
+import { themeManager, cleanerManager } from '../../manager'
 
 interface ClearItem {
   icon: ResourceStr
@@ -35,8 +35,15 @@ struct CleanerScanResultPage {
     },// 1
   ]
 
+  aboutToAppear(): void {
+    cleanerManager.requestPermissions()
+  }
+
   onPageShow() {
     themeManager.settingStatusBarWhite()
+    this.getStatfsSize()
+    this.getScreenshotList()
+
   }
 
   onPageHide() {
@@ -49,6 +56,24 @@ struct CleanerScanResultPage {
     // 字节数转GB
     this.freeSize = statfs.getFreeSizeSync(context.filesDir)
     this.totalSize = statfs.getTotalSizeSync(context.filesDir)
+  }
+
+  //获取屏幕截图列表
+  async getScreenshotList() {
+    const list = await cleanerManager.getScreenshotList()
+    let totalSize = 0
+    list.forEach(item => {
+      const size = item.get(photoAccessHelper.PhotoKeys.SIZE) as number
+      totalSize += size
+    })
+
+    this.list[0] = {
+      icon: $r('app.media.ic_clean_pmjt'),
+      name: '屏幕截图',
+      list: list,
+      size: totalSize
+    }
+
   }
 
   build() {
