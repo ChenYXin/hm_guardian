@@ -119,7 +119,7 @@ struct HomeEntry {
 @Component
 struct HomeShortcut {
   // 监听 AppStorage 的数据变化，注意 @Watch 的书写位置
-  @StorageLink(PRIVACY_SETTINGS) privacySettings: PrivacySettings = {}
+  @StorageLink(PRIVACY_SETTINGS) @Watch('onPrivacySettingChange') privacySettings: PrivacySettings = {}
   //PersistentStorage 将选定的AppStorage 属性保留再设备磁盘上
   //PersistentStorage 的持久化变量最好是小于2kb的数据
   //PersistentStorage 写入磁盘的操作是同步的
@@ -139,7 +139,9 @@ struct HomeShortcut {
     {
       title: '隐私空间',
       icon: $r('app.media.ic_home_shortcut_yskj'),
-      url: '/pages/Privacy/PrivacyIndexPage'
+      url:
+      this.privacySettings.patternPassword ? '/pages/Privacy/Auth/AuthPatternLockPage' :
+        '/pages/Privacy/Auth/AuthPatternLockSettingsPage'
     },
     {
       title: '通讯录备份',
@@ -167,6 +169,10 @@ struct HomeShortcut {
     }
   }
 
+  onPrivacySettingChange() {
+    this.togglePrivacyEntry()
+  }
+
   aboutToAppear(): void {
     this.togglePrivacyEntry()
   }
@@ -177,7 +183,8 @@ struct HomeShortcut {
     const privacyItem: IconItem = {
       title: '隐私空间',
       icon: $r('app.media.ic_home_shortcut_yskj'),
-      url: '/pages/Privacy/PrivacyIndexPage'
+      url: this.privacySettings.patternPassword ? '/pages/Privacy/Auth/AuthPatternLockPage' :
+        '/pages/Privacy/Auth/AuthPatternLockSettingsPage'
     }
     //日历清理
     const calendarItem: IconItem = {

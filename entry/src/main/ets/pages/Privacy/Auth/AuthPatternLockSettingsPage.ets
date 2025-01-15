@@ -1,4 +1,5 @@
 import { PRIVACY_SETTINGS, PrivacySettings } from '../../../common/constants'
+import { promptAction, router } from '@kit.ArkUI'
 
 interface RouterParams {
   isForgetPassword?: boolean
@@ -22,12 +23,51 @@ struct AuthPatternLockSettingsPage {
   // 控制器
   private patternLockController: PatternLockController = new PatternLockController()
 
+  //输入完成后触发
+  onPatternComplete(input: number[]) {
+    //临时密码值
+    this.inputPassword = input
+    // TODO：密码输入结束时触发该回调
+    if (input.length < 4) {
+      this.errorMessage = '手势密码长度不能小于4位，请重新输入'
+      this.patternLockController.setChallengeResult(PatternLockChallengeResult.WRONG)
+    } else {
+      this.errorMessage = ''
+      this.patternLockController.setChallengeResult(PatternLockChallengeResult.CORRECT)
+
+      //保存首次输入的密码
+      if (this.firstPassword.length === 0) {
+        this.firstPassword = input
+      } else {
+        //对比首次输入的密码还当前您的input
+        if (this.firstPassword.toString() === input.toString()) {
+          promptAction.showToast({ message: '密码设置成功' })
+          //保存当前设置密码
+          this.privacySettings.patternPassword = input.toString()
+          //页面跳转
+          router.pushUrl({ url: 'pages/Privacy/PrivacyIndexPage' })
+        } else {
+          this.errorMessage = '两次的密码不同'
+          this.patternLockController.setChallengeResult(PatternLockChallengeResult.WRONG)
+        }
+      }
+    }
+
+    this.timeoutID = setTimeout(() => {
+      this.patternLockController.reset()
+      this.inputPassword = []
+    }, 500)
+
+  }
+
   build() {
     Navigation() {
-      // Column() {
-      //   Text('inputPasswords：' + this.inputPassword)
-      //   Text('firstPasswords：' + this.firstPassword)
-      // }
+      Column() {
+        Text('当前临时输入的密码：' + this.inputPassword)
+        Text('首次输入的密码¬：' + this.firstPassword)
+        Text('持久化存储的密码：' + this.privacySettings.patternPassword)
+      }
+
       Column({ space: 20 }) {
         Column({ space: 10 }) {
           // 请输入密码
@@ -58,7 +98,7 @@ struct AuthPatternLockSettingsPage {
             clearTimeout(this.timeoutID)
           })
           .onPatternComplete((input: number[]) => {
-            // TODO：密码输入结束时触发该回调
+            this.onPatternComplete(input)
           })
       }
       .padding({ top: 140 })
