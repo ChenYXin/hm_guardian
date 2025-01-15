@@ -21,6 +21,7 @@ export default class EntryAbility extends UIAbility {
         return;
       }
       hilog.info(0x0000, 'testTag', 'Succeeded in loading the content.');
+      PersistentStorage.persistProp('isHidePrivacy', false)
     });
   }
 

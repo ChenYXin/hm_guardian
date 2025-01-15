@@ -1,4 +1,4 @@
-import { router } from '@kit.ArkUI'
+import { promptAction, router } from '@kit.ArkUI'
 import { PRIVACY_SETTINGS, PrivacySettings } from '../../common/constants'
 import { showDevelopingTips } from '../../common/dev'
 
@@ -120,6 +120,11 @@ struct HomeEntry {
 struct HomeShortcut {
   // 监听 AppStorage 的数据变化，注意 @Watch 的书写位置
   @StorageLink(PRIVACY_SETTINGS) privacySettings: PrivacySettings = {}
+  //PersistentStorage 将选定的AppStorage 属性保留再设备磁盘上
+  //PersistentStorage 的持久化变量最好是小于2kb的数据
+  //PersistentStorage 写入磁盘的操作是同步的
+  //StorageLink 双向同步
+  @StorageLink('isHidePrivacy') isHidePrivacy: boolean = false
   @State list: IconItem[] = [
     {
       title: '手机瘦身',
@@ -162,6 +167,31 @@ struct HomeShortcut {
     }
   }
 
+  aboutToAppear(): void {
+    this.togglePrivacyEntry()
+  }
+
+  //长按切换隐私空间
+  togglePrivacyEntry() {
+    //隐私空间
+    const privacyItem: IconItem = {
+      title: '隐私空间',
+      icon: $r('app.media.ic_home_shortcut_yskj'),
+      url: '/pages/Privacy/PrivacyIndexPage'
+    }
+    //日历清理
+    const calendarItem: IconItem = {
+      title: '日历清理',
+      icon: $r('app.media.ic_home_shortcut_rlql'),
+      url: '/pages/Calendar/CalendarIndexPage'
+    }
+    if (this.isHidePrivacy === true) {
+      this.list[2] = calendarItem
+    } else {
+      this.list[2] = privacyItem
+    }
+  }
+
   build() {
     GridRow({ gutter: 10, columns: 3 }) {
       ForEach(this.list, (item: IconItem, index: number) => {
@@ -190,6 +220,20 @@ struct HomeShortcut {
           .onClick(() => {
             this.openShortcutPage(item)
           })
+          .gesture(
+            //长按手势，可配置 fingers :手指数，duration：长按所需的最短时间，repeat：是否连续触发事件回调
+            LongPressGesture({ fingers: 1, duration: 500, repeat: false })
+              .onAction(() => {
+                // promptAction.showToast({ message: '长按手势触发 - 直播点赞' })
+                if (index === 2) {
+                  this.isHidePrivacy = !this.isHidePrivacy
+                  this.togglePrivacyEntry()
+                }
+              })
+              .onActionEnd(() => {
+                promptAction.showToast({ message: '长按手势取消触发' })
+              })
+          )
         }
       })
     }
